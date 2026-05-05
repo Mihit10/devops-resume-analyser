@@ -48,6 +48,11 @@ pipeline {
             steps {
                 // Uses the host's Docker daemon (via the socket we mounted in Terraform)
                 // to build and run the Next.js and Python containers
+                
+                // Docker compose expects a backend/.env file, but it's ignored by Git. 
+                // We create an empty one here so docker compose up doesn't crash.
+                sh 'touch backend/.env'
+                
                 sh 'docker compose build'
                 sh 'docker compose up -d frontend backend'
             }
