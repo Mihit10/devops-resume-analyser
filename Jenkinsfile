@@ -66,16 +66,22 @@ pipeline {
                 // Spin up a temporary Python container on the same Docker network 
                 // to run the Selenium Pytest scripts against the running frontend
                 sh '''
-                docker run --rm --network ${COMPOSE_PROJECT_NAME}_default \\
-                -v ${WORKSPACE}/tests/e2e:/tests -w /tests \\
-                python:3.10-slim /bin/bash -c "
-                  apt-get update && apt-get install -y wget && \\
-                  wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \\
-                  apt-get install -y ./google-chrome-stable_current_amd64.deb && \\
-                  rm google-chrome-stable_current_amd64.deb && \\
-                  pip install -r requirements.txt && \\
-                  pytest test_homepage.py -v
-                "
+                # Bind mounts (-v) fail because Jenkins is in a container (Docker-in-Docker)
+                # Instead, we send the context via 'docker build'
+                cat << 'EOF' > Dockerfile.test
+                FROM python:3.10-slim
+                WORKDIR /tests
+                COPY tests/e2e /tests
+                RUN apt-get update && apt-get install -y wget && \\
+                    wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \\
+                    apt-get install -y ./google-chrome-stable_current_amd64.deb && \\
+                    rm google-chrome-stable_current_amd64.deb && \\
+                    pip install --no-cache-dir -r requirements.txt
+                CMD ["pytest", "test_homepage.py", "-v"]
+                EOF
+                
+                docker build -t e2e-test-runner -f Dockerfile.test .
+                docker run --rm --network ${COMPOSE_PROJECT_NAME}_default e2e-test-runner
                 '''
             }
         }
