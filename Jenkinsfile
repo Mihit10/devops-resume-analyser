@@ -6,12 +6,16 @@ pipeline {
         COMPOSE_PROJECT_NAME = "devops_resume_analyser"
     }
 
+    triggers {
+        githubPush()
+    }
+
     stages {
         stage('Checkout Code') {
             steps {
                 // 'checkout scm' only works if Jenkins pulls this Jenkinsfile directly from Git.
                 // Since you pasted it manually, you must explicitly tell Jenkins where the code is:
-                git branch: 'main', url: 'https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME.git'
+                git branch: 'master', url: 'https://github.com/Mihit10/devops-resume-analyser.git'
             }
         }
 
@@ -24,7 +28,7 @@ pipeline {
                     def scannerHome = tool 'sonar-scanner'
                     // 'sonar-server' must be configured in Jenkins System Configuration
                     withSonarQubeEnv('sonar-server') {
-                        sh "${scannerHome}/bin/sonar-scanner"
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=devops_resume_analyser -Dsonar.sources=."
                     }
                 }
             }
