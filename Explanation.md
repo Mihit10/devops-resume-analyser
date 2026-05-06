@@ -8,7 +8,7 @@ First, I use Terraform to automatically provision the local infrastructure, incl
 When code is pushed to GitHub, it triggers a Jenkins CI/CD pipeline.
 Jenkins runs SonarQube to scan the code for bugs and quality issues. If the code is bad, the pipeline fails.
 If it passes, Jenkins uses Docker Compose to build and spin up the frontend and backend.
-Finally, Jenkins launches a temporary container to run automated UI tests using Selenium in a headless browser.
+Finally, Jenkins launches a temporary container to run automated UI tests using Selenium in a headless browser. If the tests pass, the webapp containers are left running so the new version is live, serving as a Continuous Deployment (CD) process.
 In short, it’s a full-stack AI application wrapped in a complete, automated DevOps lifecycle."
 
 🤔 Expected Questions from Your Guide (And How to Answer Them)

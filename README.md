@@ -122,7 +122,11 @@ The pipeline is defined in the `Jenkinsfile` and is triggered on pushes to the r
     - Runs Pytest scripts (`tests/e2e/test_homepage.py`) to verify frontend UI functionality in headless mode.
 6. **Deploy**: A placeholder stage representing deployment to a staging or production environment (e.g., AWS ECR/ECS).
 
-The pipeline automatically cleans up Docker containers post-execution.
+The pipeline smartly manages the lifecycle of the application containers:
+- Old webapp containers are automatically stopped and destroyed before building a new version.
+- If the build and tests succeed, the newly deployed webapp containers are left running so the application remains continuously available.
+- If the pipeline fails, the broken containers are gracefully cleaned up.
+- Core CI/CD infrastructure (Jenkins and SonarQube) is explicitly isolated and left undisturbed.
 
 ## 🧪 Testing
 
