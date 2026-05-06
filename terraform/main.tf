@@ -75,6 +75,7 @@ resource "docker_image" "jenkins" {
 resource "docker_container" "jenkins" {
   name  = "jenkins"
   image = docker_image.jenkins.image_id
+  user  = "root"
 
   # Access Jenkins Web UI
   ports {
