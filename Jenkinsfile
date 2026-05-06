@@ -49,6 +49,11 @@ pipeline {
                 // Uses the host's Docker daemon (via the socket we mounted in Terraform)
                 // to build and run the Next.js and Python containers
                 
+                // Stop and remove any frontend/backend containers left running from a previous build
+                // DO NOT use 'docker compose down' as it would stop Jenkins and SonarQube
+                sh 'docker compose stop frontend backend || true'
+                sh 'docker compose rm -f frontend backend || true'
+                
                 // Docker compose expects a backend/.env file, but it's ignored by Git. 
                 // We create an empty one here so docker compose up doesn't crash.
                 sh 'touch backend/.env'
@@ -96,14 +101,15 @@ pipeline {
 
     post {
         always {
-            // Clean up: shut down the app containers so the next build starts fresh
-            sh 'docker compose down'
             cleanWs()
         }
         success {
-            echo "Pipeline executed successfully! The new version is live."
+            echo "Pipeline executed successfully! The new version is live and the containers are left running."
         }
         failure {
+            // Clean up the containers since the pipeline failed (e.g., tests failed)
+            sh 'docker compose stop frontend backend || true'
+            sh 'docker compose rm -f frontend backend || true'
             echo "Pipeline failed! Code did not pass quality gates or tests."
         }
     }
