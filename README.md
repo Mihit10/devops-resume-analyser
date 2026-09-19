@@ -1,4 +1,4 @@
-﻿# DevOps Resume Analyzer
+# DevOps Resume Analyzer
 
 An AI-powered Resume Analyzer application built with a robust DevOps toolchain. This project utilizes a Next.js frontend, a FastAPI Python backend, and the Groq API to parse and analyze resumes, extracting skills, calculating ATS scores, and providing improvement suggestions.
 
@@ -46,6 +46,95 @@ devops-resume-analyser/
 ├── Jenkinsfile           # Jenkins Pipeline configuration
 └── package.json          # Frontend dependencies
 ```
+
+## 🏗️ Architecture Diagram
+
+### Application & Infrastructure Architecture
+
+```mermaid
+graph TB
+    subgraph User["👤 User / Browser"]
+        B[Browser]
+    end
+
+    subgraph DockerHost["🐳 Docker Host (Local Machine)"]
+
+        subgraph AppNetwork["Docker Network — devops_resume_analyser_default"]
+            FE["📦 resume-frontend\nNext.js 16 + React 19\nPort 3000"]
+            BE["📦 resume-backend\nFastAPI + Uvicorn\nPort 8000"]
+        end
+
+        subgraph CINetwork["Docker Network — devops_pipeline_network (Terraform)"]
+            JK["📦 jenkins\nJenkins LTS\nPort 8080→8081"]
+            SQ["📦 sonarqube\nSonarQube Community\nPort 9000"]
+        end
+
+        subgraph Volumes["💾 Persistent Volumes"]
+            JV["jenkins_home"]
+            SV1["sonarqube_data"]
+            SV2["sonarqube_logs"]
+            SV3["sonarqube_extensions"]
+        end
+
+        DS[("🔌 Docker Socket\n/var/run/docker.sock")]
+    end
+
+    subgraph External["☁️ External Services"]
+        GROQ["Groq API\nLLM Inference"]
+        GH["GitHub Repository"]
+    end
+
+    B -->|"HTTP :3000"| FE
+    B -->|"HTTP :9000"| SQ
+    B -->|"HTTP :8080"| JK
+    FE -->|"REST API :8000\nNEXT_PUBLIC_BACKEND_URL"| BE
+    BE -->|"HTTPS\nGroq API Key"| GROQ
+
+    JK --> DS
+    DS -->|"Docker-in-Docker\nbuild & run containers"| FE
+    DS -->|"Docker-in-Docker\nbuild & run containers"| BE
+
+    JK <-->|"SonarQube Scanner\nwebhook quality gate"| SQ
+    GH -->|"githubPush() trigger"| JK
+
+    JK --- JV
+    SQ --- SV1
+    SQ --- SV2
+    SQ --- SV3
+```
+
+### CI/CD Pipeline (Jenkinsfile)
+
+```mermaid
+flowchart TD
+    START([🚀 GitHub Push Trigger]) --> S1
+
+    S1["1️⃣ Checkout Code\ngit clone master branch\nfrom GitHub"]
+    S2["2️⃣ Code Quality — SonarQube\nRun sonar-scanner\nagainst full codebase"]
+    S3["3️⃣ Quality Gate\nWait for SonarQube analysis\n⏱ timeout: 10 min"]
+    S4["4️⃣ Build & Start App\ndocker compose stop/rm old containers\ndocker compose build\ndocker compose up -d frontend backend"]
+    S5["5️⃣ Automated UI Testing\nBuild e2e-test-runner Docker image\nRun Pytest + Selenium headless\non devops_resume_analyser_default network"]
+    S6["6️⃣ Deploy\nPush Docker images to\nProduction / AWS ECR"]
+
+    S1 --> S2 --> S3
+    S3 -->|"✅ Quality Gate Passed"| S4
+    S3 -->|"❌ Gate Failed — abort"| FAIL
+
+    S4 --> S5
+    S5 -->|"✅ All tests passed"| S6
+    S5 -->|"❌ Tests failed"| FAIL
+
+    S6 --> SUCCESS
+
+    SUCCESS(["✅ SUCCESS\nContainers left running\nApp is live"])
+    FAIL(["❌ FAILURE\ndocker compose stop/rm frontend backend\nWorkspace cleaned up"])
+
+    style SUCCESS fill:#22c55e,color:#fff
+    style FAIL fill:#ef4444,color:#fff
+    style START fill:#6366f1,color:#fff
+```
+
+---
 
 ## ⚙️ Getting Started
 
