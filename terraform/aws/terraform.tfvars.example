@@ -1,0 +1,18 @@
+# AWS Region
+aws_region = "us-east-1"
+
+# Environment
+environment = "production"
+
+# EC2 Instance Type (t3.small recommended for running Next.js + FastAPI + Prometheus + Grafana)
+instance_type = "t3.small"
+
+# Optional: Name of your existing AWS Key Pair (leave blank if connecting via AWS Systems Manager)
+key_name = ""
+
+# Groq API Key for AI resume analysis (get from https://console.groq.com)
+groq_api_key = "gsk_your_groq_api_key_here"
+
+# Git repository and branch
+repo_url    = "https://github.com/Mihit10/devops-resume-analyser.git"
+repo_branch = "master"

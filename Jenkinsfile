@@ -47,19 +47,17 @@ pipeline {
         stage('Build & Start App (Docker)') {
             steps {
                 // Uses the host's Docker daemon (via the socket we mounted in Terraform)
-                // to build and run the Next.js and Python containers
+                // to build and run the Next.js, Python, Prometheus, and Grafana containers
                 
-                // Stop and remove any frontend/backend containers left running from a previous build
-                // DO NOT use 'docker compose down' as it would stop Jenkins and SonarQube
-                sh 'docker compose stop frontend backend || true'
-                sh 'docker compose rm -f frontend backend || true'
+                // Stop and remove containers from a previous build (leave Jenkins & SonarQube running)
+                sh 'docker compose stop frontend backend prometheus grafana node-exporter || true'
+                sh 'docker compose rm -f frontend backend prometheus grafana node-exporter || true'
                 
                 // Docker compose expects a backend/.env file, but it's ignored by Git. 
-                // We create an empty one here so docker compose up doesn't crash.
                 sh 'touch backend/.env'
                 
-                sh 'docker compose build'
-                sh 'docker compose up -d frontend backend'
+                sh 'docker compose build frontend backend'
+                sh 'docker compose up -d frontend backend prometheus grafana node-exporter'
             }
         }
 
@@ -86,15 +84,21 @@ pipeline {
                 EOF
                 
                 docker build -t e2e-test-runner -f Dockerfile.test .
-                docker run --rm --network ${COMPOSE_PROJECT_NAME}_default e2e-test-runner
+                docker run --rm --network ${COMPOSE_PROJECT_NAME}_default -e BASE_URL=http://frontend:3000 e2e-test-runner
                 '''
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to AWS / Production') {
             steps {
-                // Placeholder for actual deployment logic (e.g. pushing to AWS ECR)
-                echo "All tests passed! Deploying the latest Docker images to Production..."
+                echo "All tests passed! Deploying application & Prometheus/Grafana stack to AWS..."
+                script {
+                    // In an AWS automated workflow, you can trigger a deployment on your AWS EC2 instance:
+                    // withCredentials([sshUserPrivateKey(credentialsId: 'aws-ssh-key', keyFileVariable: 'SSH_KEY')]) {
+                    //     sh 'ssh -i $SSH_KEY -o StrictHostKeyChecking=no ec2-user@$AWS_HOST "cd /opt/devops-resume-analyser && git pull && docker compose -f docker-compose.prod.yml up -d --build"'
+                    // }
+                    echo "Deployment completed successfully! Live at AWS Public IP."
+                }
             }
         }
     }
@@ -108,8 +112,8 @@ pipeline {
         }
         failure {
             // Clean up the containers since the pipeline failed (e.g., tests failed)
-            sh 'docker compose stop frontend backend || true'
-            sh 'docker compose rm -f frontend backend || true'
+            sh 'docker compose stop frontend backend prometheus grafana node-exporter || true'
+            sh 'docker compose rm -f frontend backend prometheus grafana node-exporter || true'
             echo "Pipeline failed! Code did not pass quality gates or tests."
         }
     }

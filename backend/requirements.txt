@@ -4,3 +4,4 @@ python-multipart==0.0.20
 pdfplumber==0.11.6
 groq==0.25.0
 python-dotenv==1.1.0
+prometheus-fastapi-instrumentator==7.0.2

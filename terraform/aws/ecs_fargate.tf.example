@@ -1,0 +1,124 @@
+# Optional / Advanced Production Architecture: AWS ECS Fargate + ECR + Application Load Balancer (ALB)
+# To use this architecture instead of EC2, rename this file to ecs_fargate.tf and run `terraform apply`.
+
+# 1. AWS ECR Repositories for Frontend & Backend Container Images
+resource "aws_ecr_repository" "frontend_repo" {
+  count                = 0 # Set count = 1 to enable
+  name                 = "resume-frontend"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_repository" "backend_repo" {
+  count                = 0 # Set count = 1 to enable
+  name                 = "resume-backend"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+# 2. AWS ECS Cluster
+resource "aws_ecs_cluster" "main" {
+  count = 0 # Set count = 1 to enable
+  name  = "resume-analyzer-cluster"
+}
+
+# 3. ECS Task Execution IAM Role
+resource "aws_iam_role" "ecs_execution_role" {
+  count = 0 # Set count = 1 to enable
+  name  = "ecsTaskExecutionRole-resume-analyzer"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_attach" {
+  count      = 0 # Set count = 1 to enable
+  role       = aws_iam_role.ecs_execution_role[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# 4. Backend Task Definition (Fargate)
+resource "aws_ecs_task_definition" "backend_task" {
+  count                    = 0 # Set count = 1 to enable
+  family                   = "resume-backend-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.ecs_execution_role[0].arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "resume-backend"
+      image     = "${aws_ecr_repository.backend_repo[0].repository_url}:latest"
+      essential = true
+      portMappings = [
+        {
+          containerPort = 8000
+          hostPort      = 8000
+        }
+      ]
+      environment = [
+        { name = "GROQ_API_KEY", value = var.groq_api_key },
+        { name = "CORS_ORIGINS", value = "*" }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/resume-backend"
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    }
+  ])
+}
+
+# 5. Frontend Task Definition (Fargate)
+resource "aws_ecs_task_definition" "frontend_task" {
+  count                    = 0 # Set count = 1 to enable
+  family                   = "resume-frontend-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.ecs_execution_role[0].arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "resume-frontend"
+      image     = "${aws_ecr_repository.frontend_repo[0].repository_url}:latest"
+      essential = true
+      portMappings = [
+        {
+          containerPort = 3000
+          hostPort      = 3000
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/resume-frontend"
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    }
+  ])
+}

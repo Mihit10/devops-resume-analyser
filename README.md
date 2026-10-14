@@ -7,10 +7,11 @@ It is designed with a strong focus on CI/CD and Infrastructure as Code (IaC), fe
 ## 🚀 Features
 
 - **Frontend**: Modern, responsive UI built with Next.js 16, React 19, and Tailwind CSS v4.
-- **Backend**: High-performance REST API built with FastAPI.
+- **Backend**: High-performance REST API built with FastAPI, instrumented with Prometheus metrics.
 - **AI Integration**: Leverages Groq API for lightning-fast resume analysis and AI-driven insights.
 - **Resume Parsing**: Extracts text from PDF resumes using ``pdfplumber``.
-- **Infrastructure as Code (IaC)**: Terraform scripts to provision local Docker networks and persistent volumes for Jenkins and SonarQube.
+- **Observability Stack**: Prometheus metrics scraper & Grafana dashboards tracking API request rate, p50/p95 latency, error status codes, and host CPU/memory.
+- **Infrastructure as Code (IaC)**: Terraform configurations for both local pipeline setup and full AWS Cloud deployment (VPC, Subnet, IGW, Security Groups, EC2, IAM SSM).
 - **Automated CI/CD**: A comprehensive ``Jenkinsfile`` that automates checkout, SonarQube analysis, building, deploying, and E2E UI testing.
 - **E2E Testing**: Automated UI tests using Pytest and Selenium (Headless Chrome) against the Next.js frontend.
 
@@ -18,14 +19,15 @@ It is designed with a strong focus on CI/CD and Infrastructure as Code (IaC), fe
 
 ### Application
 - **Frontend**: Next.js 16, React 19, Tailwind CSS v4, TypeScript
-- **Backend**: Python 3.10+, FastAPI, Uvicorn, ``pdfplumber``
+- **Backend**: Python 3.10+, FastAPI, Uvicorn, ``pdfplumber``, ``prometheus-fastapi-instrumentator``
 - **AI/LLM**: Groq API
 
 ### DevOps & Infrastructure
 - **Containerization**: Docker, Docker Compose
 - **CI/CD**: Jenkins
 - **Code Quality**: SonarQube
-- **IaC**: Terraform
+- **Observability**: Prometheus, Grafana, Node Exporter
+- **Cloud & IaC**: AWS (EC2, VPC, EIP, SSM), Terraform
 - **Testing**: Pytest, Selenium WebDriver
 
 ## 📂 Project Structure
@@ -34,16 +36,21 @@ It is designed with a strong focus on CI/CD and Infrastructure as Code (IaC), fe
 devops-resume-analyser/
 ├── app/                  # Next.js Frontend App Directory
 ├── backend/              # FastAPI Python Backend
-│   ├── app/              # Backend application code (routes, services, utils)
-│   ├── Dockerfile        # Backend Docker container definition
-│   └── requirements.txt  # Python dependencies
-├── terraform/            # Terraform configurations for Jenkins & SonarQube
-│   └── main.tf           # Terraform main entrypoint
+│   ├── app/              # Backend routes, services, utils
+│   ├── Dockerfile        # Backend container definition
+│   └── requirements.txt  # Python dependencies + Prometheus instrumentator
+├── monitoring/           # Observability stack configuration
+│   ├── prometheus/       # Prometheus scrape targets configuration
+│   └── grafana/          # Provisioned datasources and dashboard JSON
+├── terraform/            # Infrastructure as Code
+│   ├── main.tf           # Local Docker pipeline infrastructure
+│   └── aws/              # Production AWS infrastructure (VPC, EC2, IAM, EIP)
 ├── tests/                # Automated Tests
 │   └── e2e/              # Selenium E2E tests for the frontend
-├── docker-compose.yml    # Orchestrates frontend, backend, Jenkins, and SonarQube
-├── Dockerfile            # Frontend Docker container definition
-├── Jenkinsfile           # Jenkins Pipeline configuration
+├── docker-compose.yml    # Development / local CI stack
+├── docker-compose.prod.yml # Production compose (Frontend, Backend, Prometheus, Grafana, Node Exporter)
+├── Dockerfile            # Frontend container definition
+├── Jenkinsfile           # Jenkins Pipeline automation
 └── package.json          # Frontend dependencies
 ```
 
@@ -236,6 +243,7 @@ pytest test_homepage.py -v
 ### 🔷 Project Overview
 - What is this project and what problem does it solve?
 - Walk me through the end-to-end flow of your DevOps pipeline.
+- What difficulty did you face in this project and how did you solve it?
 
 ### 🐳 Docker & Containerization
 - Why did you use Docker Compose instead of running containers manually?
@@ -262,3 +270,14 @@ pytest test_homepage.py -v
 ### 🧠 AI & Application
 - Why did you choose Groq API over OpenAI?
 - How does the resume parsing work at a high level?
+- What is an ATS score and why does it matter?
+- How would you scale this project to a real production environment?
+
+### 📈 Observability & Monitoring
+- How is observability implemented using Prometheus and Grafana?
+- What specific metrics are captured and why are they important?
+
+### ☁️ AWS Infrastructure as Code
+- How did you provision the production infrastructure on AWS using Terraform?
+- Why use AWS Systems Manager (SSM) Session Manager instead of conventional SSH key pairs?
+
